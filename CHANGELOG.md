@@ -10,6 +10,9 @@ le [versionnage sémantique](https://semver.org/lang/fr/).
 ### Ajouté
 
 - Squelette du crate : bibliothèque et binaire hello world.
+- Module `pos_communicator` : `PosCommunicator::fetch_cheque_data` interroge la caisse et
+  valide la date et le montant. Code généré par un LLM à partir de
+  [`docs/prompts/etape-2-generation.md`](docs/prompts/etape-2-generation.md).
 - Tests en boîte noire dans `tests/`, structurés selon le modèle AAA.
 - Intégration continue : formatage, clippy, tests multiplateformes, MSRV et documentation.
 - Dependabot pour les dépendances Cargo et les actions GitHub.
