@@ -1,9 +1,2 @@
 /target
 /mutants.out*/
-
-# Fichiers intermédiaires LaTeX
-/docs/*.aux
-/docs/*.fdb_latexmk
-/docs/*.fls
-/docs/*.log
-/docs/*.out
