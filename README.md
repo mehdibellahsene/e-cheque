@@ -48,9 +48,11 @@ Linux, Windows et macOS à chaque pull request et à chaque push sur `main`.
 ```text
 .
 ├── src/
-│   ├── lib.rs        # Bibliothèque : logique de communication POS
-│   └── main.rs       # Point d'entrée de l'application
+│   ├── lib.rs               # Racine de la bibliothèque
+│   ├── pos_communicator.rs  # Dialogue avec la caisse (PosCommunicator)
+│   └── main.rs              # Point d'entrée de l'application
 ├── tests/            # Tests en boîte noire, un fichier par module testé
+├── docs/prompts/     # Prompts ayant servi à générer du code
 ├── .github/          # CI, Dependabot, modèles d'issue et de pull request
 └── Cargo.toml
 ```

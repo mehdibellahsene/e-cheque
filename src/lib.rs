@@ -1,5 +1,9 @@
 //! Communication avec la caisse (POS) pour la lecture des données de chèque.
 
+pub mod pos_communicator;
+
+pub use pos_communicator::{ChequeData, PosCommunicator, PosError};
+
 /// Retourne le message d'accueil de l'application.
 ///
 /// # Exemple

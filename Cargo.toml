@@ -10,6 +10,9 @@ readme = "README.md"
 publish = false
 
 [dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+serialport = { version = "4.10.1", default-features = false }
+thiserror = "2.0.21"
 
 [lints.rust]
 unsafe_code = "forbid"
