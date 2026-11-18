@@ -7,6 +7,9 @@
 Module de communication avec la caisse (POS) permettant à un périphérique de lecture de chèques
 de récupérer la date et le montant de la transaction en cours.
 
+La démarche de test et les choix techniques sont détaillés dans le
+[rapport de l'atelier](docs/rapport-atelier-2.md).
+
 ## Protocole
 
 Le périphérique dialogue avec la caisse via une liaison série (port COM / flux d'octets).
@@ -89,7 +92,7 @@ mutant survit.
 │   ├── pos_communicator.rs  # Dialogue avec la caisse (PosCommunicator)
 │   └── main.rs              # CLI : interroge la caisse et affiche le chèque
 ├── tests/            # Tests en boîte noire, un fichier par module testé
-├── docs/prompts/     # Prompts ayant servi à générer du code
+├── docs/            # Rapport de l'atelier et prompts de génération de code
 ├── .github/          # CI, Dependabot, modèles d'issue et de pull request
 └── Cargo.toml
 ```
