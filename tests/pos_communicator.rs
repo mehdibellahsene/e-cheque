@@ -878,7 +878,9 @@ fn open_with_unknown_port_returns_serial_error() {
     );
 }
 
-#[cfg(unix)]
+// Linux uniquement : sur macOS, serialport ne peut pas régler le débit d'un pseudo-terminal
+// (ENOTTY), et Windows n'en fournit pas. La couverture est mesurée sous Linux.
+#[cfg(target_os = "linux")]
 #[test]
 fn open_with_existing_port_exchanges_with_pos() {
     use serialport::SerialPort as _;
