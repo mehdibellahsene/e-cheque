@@ -187,7 +187,12 @@ impl<P: Read + Write, C: Clock> PosCommunicator<P, C> {
 
         loop {
             match self.port.read(&mut byte) {
-                Ok(0) => break,
+                Ok(0) if buffer.is_empty() => return Err(PosError::EmptyResponse),
+                Ok(0) => {
+                    return Err(PosError::MalformedFrame(
+                        "trame incomplète : \\n final manquant".to_string(),
+                    ));
+                }
                 Ok(_) => {
                     if byte[0] == b'\n' {
                         break;
@@ -235,6 +240,10 @@ fn parse_response(response: &str, clock: &impl Clock) -> Result<ChequeData, PosE
 
 /// Valide une date au format `YYYY-MM-DD`, qui ne doit pas être dans le futur.
 fn parse_date(raw: &str, clock: &impl Clock) -> Result<NaiveDate, PosError> {
+    if !has_iso_date_shape(raw) {
+        return Err(PosError::InvalidDate(raw.to_string()));
+    }
+
     let date = NaiveDate::parse_from_str(raw, "%Y-%m-%d")
         .map_err(|_| PosError::InvalidDate(raw.to_string()))?;
 
@@ -245,13 +254,26 @@ fn parse_date(raw: &str, clock: &impl Clock) -> Result<NaiveDate, PosError> {
     Ok(date)
 }
 
+/// Vérifie que `raw` suit exactement le gabarit `YYYY-MM-DD` : dix caractères, des chiffres et
+/// deux tirets. `NaiveDate::parse_from_str` accepte sinon `2026-1-5`, `+2026-11-16` ou des espaces.
+fn has_iso_date_shape(raw: &str) -> bool {
+    raw.len() == 10
+        && raw.bytes().enumerate().all(|(index, byte)| match index {
+            4 | 7 => byte == b'-',
+            _ => byte.is_ascii_digit(),
+        })
+}
+
 /// Convertit un montant décimal (au plus deux décimales) en centimes, sans flottant.
 fn parse_amount(raw: &str) -> Result<u64, PosError> {
     let invalid = || PosError::InvalidAmount(raw.to_string());
 
     let (units, decimals) = raw.split_once('.').unwrap_or((raw, ""));
+    let has_separator = units.len() < raw.len();
 
     if units.is_empty()
+        || (units.len() > 1 && units.starts_with('0'))
+        || (has_separator && decimals.is_empty())
         || decimals.len() > 2
         || !units.bytes().all(|b| b.is_ascii_digit())
         || !decimals.bytes().all(|b| b.is_ascii_digit())
