@@ -64,6 +64,22 @@ cargo +nightly llvm-cov --branch --ignore-filename-regex 'src/main\.rs' --open
 `src/main.rs` est exclu : c'est le code d'assemblage de la CLI, sans logique métier. La CI
 échoue si la couverture des lignes passe sous 100 % et publie le rapport HTML en artefact.
 
+### Tests de mutation
+
+La robustesse des tests est évaluée par mutation avec
+[cargo-mutants](https://mutants.rs/) : chaque mutant (opérateur inversé, corps de fonction
+remplacé…) doit être détecté par au moins un test.
+
+```sh
+cargo install cargo-mutants --locked
+
+cargo mutants
+```
+
+Le détail est écrit dans `mutants.out/`. Chaque mutant survivant fait l'objet d'une issue
+(modèle « Mutant survivant »), fermée par le commit qui renforce les tests. La CI échoue si un
+mutant survit.
+
 ## Structure
 
 ```text
