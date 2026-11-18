@@ -9,14 +9,16 @@ le [versionnage sémantique](https://semver.org/lang/fr/).
 
 ### Ajouté
 
-- Squelette du crate : bibliothèque et binaire hello world.
+- CLI `e-cheque <PORT> [DEBIT]` : interroge la caisse et affiche la date et le montant du chèque.
 - Module `pos_communicator` : `PosCommunicator::fetch_cheque_data` interroge la caisse et
   valide la date et le montant. Code généré par un LLM à partir de
   [`docs/prompts/etape-2-generation.md`](docs/prompts/etape-2-generation.md).
 - Injection des dépendances de `PosCommunicator` : canal de communication générique
   (`Read + Write`) et horloge (`Clock`, implémentée par `SystemClock`).
   `PosCommunicator::open` ouvre le port série réel.
-- Suite de tests de `PosCommunicator` (49 cas) avec des doublures `mockall`.
+- Suite de tests de `PosCommunicator` et `SystemClock` avec des doublures `mockall`.
+- Mesure de la couverture des lignes et des branchements (`cargo-llvm-cov`), avec un seuil de
+  100 % des lignes en CI.
 - Tests en boîte noire dans `tests/`, structurés selon le modèle AAA.
 - Intégration continue : formatage, clippy, tests multiplateformes, MSRV et documentation.
 - Dependabot pour les dépendances Cargo et les actions GitHub.
