@@ -187,7 +187,12 @@ impl<P: Read + Write, C: Clock> PosCommunicator<P, C> {
 
         loop {
             match self.port.read(&mut byte) {
-                Ok(0) => break,
+                Ok(0) if buffer.is_empty() => return Err(PosError::EmptyResponse),
+                Ok(0) => {
+                    return Err(PosError::MalformedFrame(
+                        "trame incomplète : \\n final manquant".to_string(),
+                    ));
+                }
                 Ok(_) => {
                     if byte[0] == b'\n' {
                         break;
