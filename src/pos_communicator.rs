@@ -68,23 +68,94 @@ pub enum PosError {
     InvalidAmount(String),
 }
 
-/// Client de communication avec la caisse via une liaison série.
-pub struct PosCommunicator {
-    port: Box<dyn SerialPort>,
+/// Source de la date du jour, injectée pour rendre la validation des dates déterministe.
+pub trait Clock {
+    /// Retourne la date du jour.
+    fn today(&self) -> NaiveDate;
 }
 
-impl PosCommunicator {
-    /// Ouvre le port série `port_name` avec le débit `baud_rate` et le délai de lecture `timeout`.
+/// Horloge système, dans le fuseau horaire local.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SystemClock;
+
+impl Clock for SystemClock {
+    fn today(&self) -> NaiveDate {
+        Local::now().date_naive()
+    }
+}
+
+/// Client de communication avec la caisse.
+///
+/// Le canal de communication `P` (tout flux d'octets [`Read`] + [`Write`], comme un port série)
+/// et l'horloge `C` sont injectés, ce qui permet de les remplacer par des doublures en test.
+pub struct PosCommunicator<P, C = SystemClock> {
+    port: P,
+    clock: C,
+}
+
+impl PosCommunicator<Box<dyn SerialPort>, SystemClock> {
+    /// Ouvre le port série `port_name` avec le débit `baud_rate` et le délai de lecture `timeout`,
+    /// et utilise l'horloge système.
     ///
     /// # Errors
     ///
     /// Retourne [`PosError::Serial`] si le port ne peut pas être ouvert.
-    pub fn new(port_name: &str, baud_rate: u32, timeout: Duration) -> Result<Self, PosError> {
+    pub fn open(port_name: &str, baud_rate: u32, timeout: Duration) -> Result<Self, PosError> {
         let port = serialport::new(port_name, baud_rate)
             .timeout(timeout)
             .open()?;
 
-        Ok(Self { port })
+        Ok(Self::new(port, SystemClock))
+    }
+}
+
+impl<P: Read + Write, C: Clock> PosCommunicator<P, C> {
+    /// Crée un client communiquant via `port` et datant les contrôles avec `clock`.
+    ///
+    /// # Exemple
+    ///
+    /// Le canal peut être n'importe quel flux d'octets, par exemple un stub en mémoire :
+    ///
+    /// ```
+    /// use std::io::{self, Read, Write};
+    ///
+    /// use chrono::NaiveDate;
+    /// use e_cheque::{Clock, PosCommunicator};
+    ///
+    /// struct StubPort(&'static [u8]);
+    ///
+    /// impl Read for StubPort {
+    ///     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    ///         self.0.read(buf)
+    ///     }
+    /// }
+    ///
+    /// impl Write for StubPort {
+    ///     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    ///         Ok(buf.len())
+    ///     }
+    ///
+    ///     fn flush(&mut self) -> io::Result<()> {
+    ///         Ok(())
+    ///     }
+    /// }
+    ///
+    /// struct FixedClock;
+    ///
+    /// impl Clock for FixedClock {
+    ///     fn today(&self) -> NaiveDate {
+    ///         NaiveDate::from_ymd_opt(2026, 11, 18).unwrap()
+    ///     }
+    /// }
+    ///
+    /// let mut pos = PosCommunicator::new(StubPort(b"OK;2026-11-16;145.50\n"), FixedClock);
+    /// let cheque = pos.fetch_cheque_data()?;
+    ///
+    /// assert_eq!(cheque.amount_cents, 14_550);
+    /// # Ok::<(), e_cheque::PosError>(())
+    /// ```
+    pub fn new(port: P, clock: C) -> Self {
+        Self { port, clock }
     }
 
     /// Demande à la caisse les données du chèque en cours, puis les valide.
@@ -99,7 +170,7 @@ impl PosCommunicator {
     pub fn fetch_cheque_data(&mut self) -> Result<ChequeData, PosError> {
         self.send_command()?;
         let response = self.read_response()?;
-        parse_response(&response)
+        parse_response(&response, &self.clock)
     }
 
     /// Envoie la commande `GET_CHEQUE_DATA` à la caisse.
@@ -140,7 +211,7 @@ impl PosCommunicator {
 }
 
 /// Analyse la réponse de la caisse et en extrait les données du chèque.
-fn parse_response(response: &str) -> Result<ChequeData, PosError> {
+fn parse_response(response: &str, clock: &impl Clock) -> Result<ChequeData, PosError> {
     if response.is_empty() {
         return Err(PosError::EmptyResponse);
     }
@@ -156,18 +227,18 @@ fn parse_response(response: &str) -> Result<ChequeData, PosError> {
         return Err(PosError::MalformedFrame(response.to_string()));
     }
 
-    let date = parse_date(fields[1])?;
+    let date = parse_date(fields[1], clock)?;
     let amount_cents = parse_amount(fields[2])?;
 
     Ok(ChequeData { date, amount_cents })
 }
 
 /// Valide une date au format `YYYY-MM-DD`, qui ne doit pas être dans le futur.
-fn parse_date(raw: &str) -> Result<NaiveDate, PosError> {
+fn parse_date(raw: &str, clock: &impl Clock) -> Result<NaiveDate, PosError> {
     let date = NaiveDate::parse_from_str(raw, "%Y-%m-%d")
         .map_err(|_| PosError::InvalidDate(raw.to_string()))?;
 
-    if date > Local::now().date_naive() {
+    if date > clock.today() {
         return Err(PosError::InvalidDate(format!("{raw} est dans le futur")));
     }
 
