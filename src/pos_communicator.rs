@@ -240,6 +240,10 @@ fn parse_response(response: &str, clock: &impl Clock) -> Result<ChequeData, PosE
 
 /// Valide une date au format `YYYY-MM-DD`, qui ne doit pas être dans le futur.
 fn parse_date(raw: &str, clock: &impl Clock) -> Result<NaiveDate, PosError> {
+    if !has_iso_date_shape(raw) {
+        return Err(PosError::InvalidDate(raw.to_string()));
+    }
+
     let date = NaiveDate::parse_from_str(raw, "%Y-%m-%d")
         .map_err(|_| PosError::InvalidDate(raw.to_string()))?;
 
@@ -248,6 +252,16 @@ fn parse_date(raw: &str, clock: &impl Clock) -> Result<NaiveDate, PosError> {
     }
 
     Ok(date)
+}
+
+/// Vérifie que `raw` suit exactement le gabarit `YYYY-MM-DD` : dix caractères, des chiffres et
+/// deux tirets. `NaiveDate::parse_from_str` accepte sinon `2026-1-5`, `+2026-11-16` ou des espaces.
+fn has_iso_date_shape(raw: &str) -> bool {
+    raw.len() == 10
+        && raw.bytes().enumerate().all(|(index, byte)| match index {
+            4 | 7 => byte == b'-',
+            _ => byte.is_ascii_digit(),
+        })
 }
 
 /// Convertit un montant décimal (au plus deux décimales) en centimes, sans flottant.
