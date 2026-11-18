@@ -831,6 +831,21 @@ fn fetch_with_padded_amount_returns_invalid_amount() {
     );
 }
 
+#[test]
+fn fetch_with_non_digit_decimals_returns_invalid_amount() {
+    // Arrange
+    let mut pos = pos_answering(b"OK;2026-11-16;145.5a\n");
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::InvalidAmount(_))),
+        "résultat inattendu : {result:?}"
+    );
+}
+
 // --- Ouverture du port série ----------------------------------------------------------------
 
 #[test]
