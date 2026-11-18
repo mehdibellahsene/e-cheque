@@ -52,12 +52,22 @@ fn port_answering(response: &'static [u8]) -> MockPort {
     port
 }
 
-/// Stub de port : accepte toute écriture mais échoue à chaque lecture avec `kind`.
+/// Stub de port : accepte toute écriture, échoue à la première lecture avec `kind`, puis
+/// signale la fin du flux. Une lecture relancée après l'erreur aboutit donc à une réponse vide
+/// au lieu de boucler indéfiniment.
 fn port_failing_read(kind: io::ErrorKind) -> MockPort {
     let mut port = MockPort::new();
     port.expect_write().returning(|buf| Ok(buf.len()));
     port.expect_flush().returning(|| Ok(()));
-    port.expect_read().returning(move |_| Err(kind.into()));
+    let mut failed = false;
+    port.expect_read().returning(move |_| {
+        if failed {
+            Ok(0)
+        } else {
+            failed = true;
+            Err(kind.into())
+        }
+    });
     port
 }
 
