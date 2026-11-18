@@ -560,6 +560,21 @@ fn fetch_with_unpadded_date_returns_invalid_date() {
 }
 
 #[test]
+fn fetch_with_unpadded_day_returns_invalid_date() {
+    // Arrange
+    let mut pos = pos_answering(b"OK;2026-11-1;145.50\n");
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::InvalidDate(_))),
+        "résultat inattendu : {result:?}"
+    );
+}
+
+#[test]
 fn fetch_with_signed_year_returns_invalid_date() {
     // Arrange
     let mut pos = pos_answering(b"OK;+2026-11-16;145.50\n");
