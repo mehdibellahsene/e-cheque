@@ -16,3 +16,6 @@ thiserror = "2.0.21"
 
 [lints.rust]
 unsafe_code = "forbid"
+
+[dev-dependencies]
+mockall = "0.15.0"
