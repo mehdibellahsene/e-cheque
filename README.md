@@ -27,7 +27,12 @@ Prérequis : [Rust](https://www.rust-lang.org/tools/install) 1.85 ou plus récen
 ```sh
 git clone https://github.com/mehdibellahsene/e-cheque.git
 cd e-cheque
-cargo run
+cargo run -- <PORT> [DEBIT]   # ex. /dev/ttyUSB0 ou COM3, 9600 bauds par défaut
+```
+
+```text
+Date    : 2026-11-16
+Montant : 145.50 €
 ```
 
 ## Développement
@@ -43,6 +48,22 @@ cargo run
 L'intégration continue ([`ci.yml`](.github/workflows/ci.yml)) exécute ces vérifications sur
 Linux, Windows et macOS à chaque pull request et à chaque push sur `main`.
 
+### Couverture de code
+
+La couverture des lignes et des branchements est mesurée avec
+[cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov), qui requiert la chaîne nightly
+pour les branchements :
+
+```sh
+rustup toolchain install nightly --component llvm-tools-preview
+cargo install cargo-llvm-cov --locked
+
+cargo +nightly llvm-cov --branch --ignore-filename-regex 'src/main\.rs' --open
+```
+
+`src/main.rs` est exclu : c'est le code d'assemblage de la CLI, sans logique métier. La CI
+échoue si la couverture des lignes passe sous 100 % et publie le rapport HTML en artefact.
+
 ## Structure
 
 ```text
@@ -50,7 +71,7 @@ Linux, Windows et macOS à chaque pull request et à chaque push sur `main`.
 ├── src/
 │   ├── lib.rs               # Racine de la bibliothèque
 │   ├── pos_communicator.rs  # Dialogue avec la caisse (PosCommunicator)
-│   └── main.rs              # Point d'entrée de l'application
+│   └── main.rs              # CLI : interroge la caisse et affiche le chèque
 ├── tests/            # Tests en boîte noire, un fichier par module testé
 ├── docs/prompts/     # Prompts ayant servi à générer du code
 ├── .github/          # CI, Dependabot, modèles d'issue et de pull request

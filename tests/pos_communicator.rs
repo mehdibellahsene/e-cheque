@@ -4,6 +4,7 @@
 //! simuler les réponses de la caisse et la date du jour, des mocks pour vérifier les échanges.
 
 use std::io::{self, Read, Write};
+use std::time::Duration;
 
 use chrono::NaiveDate;
 use e_cheque::{ChequeData, PosCommunicator, PosError};
@@ -828,4 +829,79 @@ fn fetch_with_padded_amount_returns_invalid_amount() {
         matches!(result, Err(PosError::InvalidAmount(_))),
         "résultat inattendu : {result:?}"
     );
+}
+
+#[test]
+fn fetch_with_non_digit_decimals_returns_invalid_amount() {
+    // Arrange
+    let mut pos = pos_answering(b"OK;2026-11-16;145.5a\n");
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::InvalidAmount(_))),
+        "résultat inattendu : {result:?}"
+    );
+}
+
+#[test]
+fn fetch_with_units_exceeding_u64_returns_invalid_amount() {
+    // Arrange
+    let mut pos = pos_answering(b"OK;2026-11-16;18446744073709551616.00\n");
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::InvalidAmount(_))),
+        "résultat inattendu : {result:?}"
+    );
+}
+
+// --- Ouverture du port série ----------------------------------------------------------------
+
+#[test]
+fn open_with_unknown_port_returns_serial_error() {
+    // Arrange
+    let port_name = "port-inexistant-e-cheque";
+
+    // Act
+    let result = PosCommunicator::open(port_name, 9600, Duration::from_millis(100));
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::Serial(_))),
+        "ouverture inattendue du port {port_name}"
+    );
+}
+
+// Linux uniquement : sur macOS, serialport ne peut pas régler le débit d'un pseudo-terminal
+// (ENOTTY), et Windows n'en fournit pas. La couverture est mesurée sous Linux.
+#[cfg(target_os = "linux")]
+#[test]
+fn open_with_existing_port_exchanges_with_pos() {
+    use serialport::SerialPort as _;
+
+    // Arrange
+    let (mut pos_side, device_side) = serialport::TTYPort::pair().expect("pseudo-terminal");
+    let port_name = device_side.name().expect("nom du pseudo-terminal");
+    drop(device_side);
+    let mut pos = PosCommunicator::open(&port_name, 9600, Duration::from_secs(1))
+        .expect("ouverture du pseudo-terminal");
+    pos_side
+        .write_all(b"OK;2020-01-01;145.50\n")
+        .expect("réponse de la caisse");
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    let expected = ChequeData {
+        date: date(2020, 1, 1),
+        amount_cents: 14_550,
+    };
+    assert_eq!(result.unwrap(), expected);
 }
