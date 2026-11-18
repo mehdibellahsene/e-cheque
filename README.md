@@ -8,7 +8,8 @@ Module de communication avec la caisse (POS) permettant à un périphérique de 
 de récupérer la date et le montant de la transaction en cours.
 
 La démarche de test et les choix techniques sont détaillés dans le
-[rapport de l'atelier](docs/rapport-atelier-2.md).
+[rapport de l'atelier](docs/rapport-atelier-2.md) (synthèse en
+[PDF](docs/rapport-atelier-2.pdf)).
 
 ## Protocole
 
