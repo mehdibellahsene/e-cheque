@@ -877,3 +877,29 @@ fn open_with_unknown_port_returns_serial_error() {
         "ouverture inattendue du port {port_name}"
     );
 }
+
+#[cfg(unix)]
+#[test]
+fn open_with_existing_port_exchanges_with_pos() {
+    use serialport::SerialPort as _;
+
+    // Arrange
+    let (mut pos_side, device_side) = serialport::TTYPort::pair().expect("pseudo-terminal");
+    let port_name = device_side.name().expect("nom du pseudo-terminal");
+    drop(device_side);
+    let mut pos = PosCommunicator::open(&port_name, 9600, Duration::from_secs(1))
+        .expect("ouverture du pseudo-terminal");
+    pos_side
+        .write_all(b"OK;2020-01-01;145.50\n")
+        .expect("réponse de la caisse");
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    let expected = ChequeData {
+        date: date(2020, 1, 1),
+        amount_cents: 14_550,
+    };
+    assert_eq!(result.unwrap(), expected);
+}
