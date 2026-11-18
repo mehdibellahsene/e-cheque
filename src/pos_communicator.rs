@@ -7,6 +7,7 @@
 //! - réponses d'erreur : `ERR_NO_TRANSACTION\n` et `ERR_BUSY\n`.
 
 use std::io::{self, Read, Write};
+use std::iter;
 use std::time::Duration;
 
 use chrono::{Local, NaiveDate};
@@ -282,11 +283,14 @@ fn parse_amount(raw: &str) -> Result<u64, PosError> {
     }
 
     let units: u64 = units.parse().map_err(|_| invalid())?;
-    let cents: u64 = match decimals.len() {
-        0 => 0,
-        1 => decimals.parse::<u64>().map_err(|_| invalid())? * 10,
-        _ => decimals.parse().map_err(|_| invalid())?,
-    };
+    // Les décimales sont déjà validées (zéro à deux chiffres) : complétées à deux chiffres par des
+    // zéros, elles donnent directement les centimes, sans conversion faillible.
+    let cents = decimals
+        .bytes()
+        .map(|digit| u64::from(digit - b'0'))
+        .chain(iter::repeat(0))
+        .take(2)
+        .fold(0, |cents, digit| cents * 10 + digit);
 
     let amount = units
         .checked_mul(100)
