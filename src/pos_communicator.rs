@@ -269,8 +269,11 @@ fn parse_amount(raw: &str) -> Result<u64, PosError> {
     let invalid = || PosError::InvalidAmount(raw.to_string());
 
     let (units, decimals) = raw.split_once('.').unwrap_or((raw, ""));
+    let has_separator = units.len() < raw.len();
 
     if units.is_empty()
+        || (units.len() > 1 && units.starts_with('0'))
+        || (has_separator && decimals.is_empty())
         || decimals.len() > 2
         || !units.bytes().all(|b| b.is_ascii_digit())
         || !decimals.bytes().all(|b| b.is_ascii_digit())
