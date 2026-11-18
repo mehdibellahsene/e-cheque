@@ -2,7 +2,7 @@
 
 pub mod pos_communicator;
 
-pub use pos_communicator::{ChequeData, PosCommunicator, PosError};
+pub use pos_communicator::{ChequeData, Clock, PosCommunicator, PosError, SystemClock};
 
 /// Retourne le message d'accueil de l'application.
 ///
