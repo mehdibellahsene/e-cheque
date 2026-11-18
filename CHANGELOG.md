@@ -16,8 +16,15 @@ le [versionnage sémantique](https://semver.org/lang/fr/).
 - Injection des dépendances de `PosCommunicator` : canal de communication générique
   (`Read + Write`) et horloge (`Clock`, implémentée par `SystemClock`).
   `PosCommunicator::open` ouvre le port série réel.
+- Suite de tests de `PosCommunicator` (49 cas) avec des doublures `mockall`.
 - Tests en boîte noire dans `tests/`, structurés selon le modèle AAA.
 - Intégration continue : formatage, clippy, tests multiplateformes, MSRV et documentation.
 - Dependabot pour les dépendances Cargo et les actions GitHub.
 - Documentation communautaire : README, guide de contribution, code de conduite, politique de sécurité.
 - Double licence MIT OR Apache-2.0.
+
+### Corrigé
+
+- Une trame sans `\n` final est rejetée au lieu d'être acceptée tronquée.
+- Les dates hors gabarit strict `YYYY-MM-DD` (`2026-1-5`, `+2026-11-16`) sont rejetées.
+- Les montants `145.` et `0145.50` sont rejetés.
