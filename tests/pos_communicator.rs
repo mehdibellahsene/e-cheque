@@ -416,6 +416,22 @@ fn fetch_with_endless_stream_returns_malformed_frame() {
     );
 }
 
+#[test]
+fn fetch_with_line_at_length_limit_reads_whole_line() {
+    // Arrange
+    let line: &'static [u8] = Box::leak([&[b'A'; 256][..], b"\n"].concat().into_boxed_slice());
+    let mut pos = pos_answering(line);
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::MalformedFrame(ref frame)) if frame.len() == 256),
+        "résultat inattendu : {result:?}"
+    );
+}
+
 // --- Dates ----------------------------------------------------------------------------------
 
 #[test]
