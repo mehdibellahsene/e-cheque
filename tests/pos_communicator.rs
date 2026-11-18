@@ -4,6 +4,7 @@
 //! simuler les réponses de la caisse et la date du jour, des mocks pour vérifier les échanges.
 
 use std::io::{self, Read, Write};
+use std::time::Duration;
 
 use chrono::NaiveDate;
 use e_cheque::{ChequeData, PosCommunicator, PosError};
@@ -827,5 +828,22 @@ fn fetch_with_padded_amount_returns_invalid_amount() {
     assert!(
         matches!(result, Err(PosError::InvalidAmount(_))),
         "résultat inattendu : {result:?}"
+    );
+}
+
+// --- Ouverture du port série ----------------------------------------------------------------
+
+#[test]
+fn open_with_unknown_port_returns_serial_error() {
+    // Arrange
+    let port_name = "port-inexistant-e-cheque";
+
+    // Act
+    let result = PosCommunicator::open(port_name, 9600, Duration::from_millis(100));
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::Serial(_))),
+        "ouverture inattendue du port {port_name}"
     );
 }
