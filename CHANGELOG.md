@@ -19,6 +19,8 @@ le [versionnage sémantique](https://semver.org/lang/fr/).
 - Suite de tests de `PosCommunicator` et `SystemClock` avec des doublures `mockall`.
 - Mesure de la couverture des lignes et des branchements (`cargo-llvm-cov`), avec un seuil de
   100 % des lignes en CI.
+- Tests de la CLI exécutée comme un processus.
+- Tests de mutation (`cargo-mutants`), bloquants en CI.
 - Tests en boîte noire dans `tests/`, structurés selon le modèle AAA.
 - Intégration continue : formatage, clippy, tests multiplateformes, MSRV et documentation.
 - Dependabot pour les dépendances Cargo et les actions GitHub.

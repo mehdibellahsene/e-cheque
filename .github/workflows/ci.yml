@@ -103,3 +103,19 @@ jobs:
         with:
           name: rapport-couverture
           path: target/llvm-cov/html
+
+  mutants:
+    name: Tests de mutation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@cargo-mutants
+      - uses: Swatinem/rust-cache@v2
+      # Échoue si un mutant survit (code 2) ou provoque un timeout (code 3).
+      - run: cargo mutants --no-shuffle --jobs 2
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rapport-mutants
+          path: mutants.out

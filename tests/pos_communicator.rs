@@ -52,12 +52,22 @@ fn port_answering(response: &'static [u8]) -> MockPort {
     port
 }
 
-/// Stub de port : accepte toute écriture mais échoue à chaque lecture avec `kind`.
+/// Stub de port : accepte toute écriture, échoue à la première lecture avec `kind`, puis
+/// signale la fin du flux. Une lecture relancée après l'erreur aboutit donc à une réponse vide
+/// au lieu de boucler indéfiniment.
 fn port_failing_read(kind: io::ErrorKind) -> MockPort {
     let mut port = MockPort::new();
     port.expect_write().returning(|buf| Ok(buf.len()));
     port.expect_flush().returning(|| Ok(()));
-    port.expect_read().returning(move |_| Err(kind.into()));
+    let mut failed = false;
+    port.expect_read().returning(move |_| {
+        if failed {
+            Ok(0)
+        } else {
+            failed = true;
+            Err(kind.into())
+        }
+    });
     port
 }
 
@@ -416,6 +426,22 @@ fn fetch_with_endless_stream_returns_malformed_frame() {
     );
 }
 
+#[test]
+fn fetch_with_line_at_length_limit_reads_whole_line() {
+    // Arrange
+    let line: &'static [u8] = Box::leak([&[b'A'; 256][..], b"\n"].concat().into_boxed_slice());
+    let mut pos = pos_answering(line);
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::MalformedFrame(ref frame)) if frame.len() == 256),
+        "résultat inattendu : {result:?}"
+    );
+}
+
 // --- Dates ----------------------------------------------------------------------------------
 
 #[test]
@@ -548,6 +574,21 @@ fn fetch_with_day_zero_returns_invalid_date() {
 fn fetch_with_unpadded_date_returns_invalid_date() {
     // Arrange
     let mut pos = pos_answering(b"OK;2026-1-5;145.50\n");
+
+    // Act
+    let result = pos.fetch_cheque_data();
+
+    // Assert
+    assert!(
+        matches!(result, Err(PosError::InvalidDate(_))),
+        "résultat inattendu : {result:?}"
+    );
+}
+
+#[test]
+fn fetch_with_unpadded_day_returns_invalid_date() {
+    // Arrange
+    let mut pos = pos_answering(b"OK;2026-11-1;145.50\n");
 
     // Act
     let result = pos.fetch_cheque_data();

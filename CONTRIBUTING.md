@@ -31,6 +31,9 @@ Avant d'ouvrir une issue, vérifiez qu'elle n'existe pas déjà. Utilisez le mod
    cargo test
    ```
 
+   La CI vérifie aussi la couverture (100 % des lignes) et les tests de mutation : voir les
+   commandes dans le [README](README.md#couverture-de-code).
+
 4. Ouvrez une pull request vers `main` en remplissant le modèle fourni.
 
 ## Écrire les tests
